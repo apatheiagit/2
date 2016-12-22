@@ -9,12 +9,15 @@ class PokemonList extends Array {
 	}
 	show(){
 		for (let pokemon of this){
-			console.log('%s - покемон %d уровня', pokemon.name, pokemon.level);
+			pokemon.show();
 		}
 		console.log('Общее количество покемонов: %d', this.length);
 	}
 	max(){
-		return Math.max.apply(null, this);
+		this.sort(function(a, b) {
+		  return b.level - a.level;
+		});
+		return this[0];
 	}
 }
 module.exports = PokemonList;
