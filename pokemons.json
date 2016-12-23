@@ -2,5 +2,8 @@
 	{"name": "Bulbasaur", "level": 12},
 	{"name": "Ivysaur", "level": 17},
 	{"name": "Venusaur", "level": 22},
-	{"name": "Charmander", "level": 51}
+	{"name": "Charmander", "level": 51},
+	{"name": "Wartortle", "level": 15},
+	{"name": "Blastoise", "level": 32},
+	{"name": "Butterfree", "level": 12}
 ]

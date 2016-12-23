@@ -13,7 +13,7 @@ for (let pokemon of Pokemons){
 }
 
 let tmp = hide(path, lost);
-console.log(tmp);
+
 
 /*lost.add('Пикачу', 56);
 lost.add('Чармандер', 20);
