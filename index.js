@@ -1,6 +1,5 @@
 'use strict'
-const hide = require('./hidenseek').hide;
-const seek = require('./hidenseek').seek;
+const hidenseek = require('./hidenseek');
 const Pokemons = require('./pokemons');
 const PokemonList = require('./pokemonlist');
 
@@ -12,7 +11,10 @@ for (let pokemon of Pokemons){
 	lost.add(pokemon.name, pokemon.level);
 }
 
-let tmp = hide(path, lost);
+let tmp = hidenseek.hide(path, lost);
+//tmp.show();
+
+//let tmp2 = hidenseek.seek(path);
 
 
 /*lost.add('Пикачу', 56);

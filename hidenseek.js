@@ -1,54 +1,46 @@
 const PokemonList = require('./pokemonlist');
 const random = require('./random');
 const fs = require('fs');
-const randomIndexes = new Array();
-const pokemonList = new PokemonList();	
-const hideList = new PokemonList();	
 
-const hide = (path, list) => {
+const hide = (path, pokemonList) => {
 	
-	for (let pokemon of list){
-		pokemonList.push(pokemon);
-	}
-
+	let hideList = new PokemonList();
 	let totalCount  = pokemonList.length;
-	let hideCount = random(3, totalCount);
+	let maxHideCount = Math.min(pokemonList.length, 3); 
+	let hideCount = random(1, maxHideCount);
 
-	for (let i = 0; i < hideCount; ++i){
-		let randomIndex = random(0, totalCount-1);
-		let idx = randomIndexes.indexOf(randomIndex);
-		while (idx == -1){
-			randomIndexes.push(randomIndex);			
-			randomIndex = random(0, totalCount-1);
-			idx = randomIndexes.indexOf(randomIndex);
-		}		
-	}
+	const randomIndexes = generateRandomIndexes(hideCount, totalCount);
+
+  for (let i = 0; i < randomIndexes.length; ++i){
+  	hideList.push(pokemonList[randomIndexes[i]]);
+  }
 
 	if (fs.existsSync(path)) {
 		deleteFolderRecursive(path);
 	}
 
-	randomIndexes.sort();
-
 	fs.mkdir(path, err =>{
 		if (err) throw err;
-		for (let i = 0; i < 10; ++i){
-			let j = i + 1;
-			let name = path + ('0' + j).slice(-2);
-			createFolder(name, i);
-		}
+		createFolder(path, 0, hideList);		
 	});
-	//hideList.show();
-	console.log(randomIndexes);
-
+	
+	return hideList;	
 };
 
-const seek = (path) =>{
-	return pokemonList;
+const seek = (path, seekDoneClbk) =>{
+	let seekList = new PokemonList();
+	if(fs.existsSync(path)) {
+		fs.readdir(path, (err, items) => {
+	    if (err) throw err;	
+	    let i = 0;
+	    readSeekDir(path, items, i, seekList);
+
+		});
+	}
 };
 
 const deleteFolderRecursive = (path) => {
-  if( fs.existsSync(path) ) {
+  if(fs.existsSync(path)) {
     fs.readdirSync(path).forEach((file,index) => {
       var curPath = path + "/" + file;
       if(fs.lstatSync(curPath).isDirectory()) { 
@@ -61,14 +53,15 @@ const deleteFolderRecursive = (path) => {
   }
 };
 
-const createFolder = (name, i) => {
+const createFolder = (path, i, hideList) => {
+	let j = i + 1;
+	let name = path + ('0' + j).slice(-2);
 	fs.mkdir(name, err => {
-		if (err) throw err;	
-		if (randomIndexes.indexOf(i) != -1){
-			console.log(i);
-			let text = pokemonList[i].name + '|' + pokemonList[i].level;			
-			hideList.push(pokemonList[i]);
-			createPokemonFile(name, text);
+		if (err) throw err;		
+		if (j < 10)	{
+			createFolder(path, j, hideList);	
+		}else{
+			layOutPokemons(path,  hideList);
 		}					
 	});
 };
@@ -79,6 +72,59 @@ const createPokemonFile = (path, text) => {
 	})
 };
 
+const layOutPokemons = (path, hideList) => {
+	let randomIndexes = generateRandomIndexes(hideList.length, 10);
+	for (let i = 0; i < randomIndexes.length; ++i){
+		let j = randomIndexes[i] + 1;
+		let folderName = path + ('0' + j).slice(-2);
+		let pokemonText = hideList[i].name + '|' + hideList[i].level;
+		createPokemonFile(folderName, pokemonText);
+	}
+}
+
+const generateRandomIndexes = (hideCount, totalCount) => {
+	let randomIndexes = new Array();
+	for (let i = 0; i < hideCount; ++i){
+		let idx = -1;
+		let randomIndex = 0;
+		do
+		{
+			randomIndex = random(0, totalCount - 1);
+			idx = randomIndexes.indexOf(randomIndex);
+		}	
+		while(idx != -1);
+    randomIndexes.push(randomIndex);
+	}
+	return randomIndexes;
+};
+
+const readSeekDir = (path, items, i, seekList) => {	
+  if (i > items.length) {
+  	return seekList;
+  }
+  let curPath = path + "/" + items[i];
+  fs.readdir(curPath, (err, items) => {
+  	if (err) throw err;
+  	let pokemonPath = curPath+'/pokemon.txt';
+  	if (fs.existsSync(pokemonPath)){
+  		fs.readFile(pokemonPath, 'utf8', (err, contents) => {
+			  if (err) throw err;
+			  seekPokemons(contents, seekList);
+			  readSeekDir(path, items, i + 1, seekList);
+			});
+  	}else{
+  		readSeekDir(path, items, i + 1, seekList);
+  	}	    	
+  });
+  
+};
+
+
+
+const seekPokemons = (contents, seekList) => {
+	let pokemonInfoArray = contents.split('|');
+	seekList.add(pokemonInfoArray[0], pokemonInfoArray[1]);
+}
 module.exports = {
 	hide,
 	seek
