@@ -2,13 +2,11 @@ const PokemonList = require('./pokemonlist');
 const random = require('./random');
 const fs = require('fs');
 
-const hide = (path, pokemonList) => {
-	
+const hide = (path, pokemonList, callback) => {	
 	let hideList = new PokemonList();
 	let totalCount  = pokemonList.length;
 	let maxHideCount = Math.min(pokemonList.length, 3); 
 	let hideCount = random(1, maxHideCount);
-
 	const randomIndexes = generateRandomIndexes(hideCount, totalCount);
 
   for (let i = 0; i < randomIndexes.length; ++i){
@@ -24,19 +22,7 @@ const hide = (path, pokemonList) => {
 		createFolder(path, 0, hideList);		
 	});
 	
-	return hideList;	
-};
-
-const seek = (path, seekDoneClbk) =>{
-	let seekList = new PokemonList();
-	if(fs.existsSync(path)) {
-		fs.readdir(path, (err, items) => {
-	    if (err) throw err;	
-	    let i = 0;
-	    readSeekDir(path, items, i, seekList);
-
-		});
-	}
+	callback(hideList);	
 };
 
 const deleteFolderRecursive = (path) => {
@@ -66,12 +52,6 @@ const createFolder = (path, i, hideList) => {
 	});
 };
 
-const createPokemonFile = (path, text) => {
-	fs.writeFile(path + '/pokemon.txt', text, 'utf8', err => {
-		if (err) throw err;	
-	})
-};
-
 const layOutPokemons = (path, hideList) => {
 	let randomIndexes = generateRandomIndexes(hideList.length, 10);
 	for (let i = 0; i < randomIndexes.length; ++i){
@@ -81,6 +61,12 @@ const layOutPokemons = (path, hideList) => {
 		createPokemonFile(folderName, pokemonText);
 	}
 }
+
+const createPokemonFile = (path, text) => {
+	fs.writeFile(path + '/pokemon.txt', text, 'utf8', err => {
+		if (err) throw err;	
+	})
+};
 
 const generateRandomIndexes = (hideCount, totalCount) => {
 	let randomIndexes = new Array();
@@ -98,34 +84,50 @@ const generateRandomIndexes = (hideCount, totalCount) => {
 	return randomIndexes;
 };
 
-const readSeekDir = (path, items, i, seekList) => {	
-  if (i > items.length) {
-  	return seekList;
-  }
-  let curPath = path + "/" + items[i];
-  fs.readdir(curPath, (err, items) => {
-  	if (err) throw err;
-  	let pokemonPath = curPath+'/pokemon.txt';
-  	if (fs.existsSync(pokemonPath)){
-  		fs.readFile(pokemonPath, 'utf8', (err, contents) => {
-			  if (err) throw err;
-			  seekPokemons(contents, seekList);
-			  readSeekDir(path, items, i + 1, seekList);
-			});
-  	}else{
-  		readSeekDir(path, items, i + 1, seekList);
-  	}	    	
-  });
-  
+const readPokemonDir = (path) => {	
+	let promise = new Promise(function(resolve, reject){
+		if(fs.existsSync(path)) {
+			fs.readdir(path, (err, items) => {
+				if (err) throw err;	
+				let filesToRead = new Array();
+		    for (let i = 0; i < items.length; ++i){
+		    	let pokemonPath = path + items[i] +'/pokemon.txt';
+			  	if (fs.existsSync(pokemonPath)){		  		
+						filesToRead.push(pokemonPath);						
+			  	}
+		    }
+		    resolve(filesToRead);
+			})
+		}
+	});
+	return promise;
 };
 
+const readPokemonFiles = (filesToRead) => {
+	const seekList = new PokemonList();
+	let promise = new Promise(function(resolve, reject){
+		for (let i = 0; i < filesToRead.length; ++i){
+			let contents = fs.readFileSync(filesToRead[i], 'utf8');
+			let pokemonInfo = contents.split('|');
+			seekList.add(pokemonInfo[0], pokemonInfo[1]);	
+		}
+		resolve(seekList);
+	});
+	return promise;
+};
 
+const printSeekList = (seekList) => {
+	seekList.show();
+};
 
-const seekPokemons = (contents, seekList) => {
-	let pokemonInfoArray = contents.split('|');
-	seekList.add(pokemonInfoArray[0], pokemonInfoArray[1]);
+const seek = (path) =>{
+	readPokemonDir(path)
+		.then(readPokemonFiles)
+		.then(printSeekList);
 }
+
 module.exports = {
 	hide,
 	seek
 };
+
